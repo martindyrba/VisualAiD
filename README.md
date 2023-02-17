@@ -13,12 +13,14 @@ This enables creation of relevance heatmaps, which approximate the contribution 
 ## Included 3D CNN Model Architectures
 
 We chose to study some of the most cited CNN architectures - AlexNet, VGG, ResNet, and DenseNet.
-See [Source/util.py] for implementation details.
+See [Source/util.py](Source/util.py) for implementation details.
+
+TODO: add model architecture images here or below
 
 
 ## Key Results
 
-
+TODO: add short results summary and relevance images here
 
 
 ## Citation
