@@ -1,0 +1,13 @@
+***Model: VGG*** 
+Data: All the data-sets > gray matter crops  
+***Data Aug: 2/3 Agumentation.***
+Activation: Relu
+Cross Validation: 10 Fold
+**Adam learning rate: 0.0001**
+
+Training setup: callbacks=[EarlyStopping(monitor='loss', mode='auto', verbose=1, patience=3, min_delta=0.01),    
+                      ModelCheckpoint(filepathbest, monitor='loss', verbose=0, save_best_only=True, mode='auto')],       
+i.e.  Train by tracking training loss.  
+      Validation mertics are standalone. Validation set is not used to optimise training. 
+
+
