@@ -15,13 +15,28 @@ This enables creation of relevance heatmaps, which approximate the contribution 
 We chose to study some of the most cited CNN architectures - AlexNet, VGG, ResNet, and DenseNet.
 See [Source/util.py](Source/util.py) for implementation details.
 
-TODO: add model architecture images here or below
+<!---TODO: add model architecture images here or below--->
+
+Following image illusrates the DenseNet model architecture that was utilised in this study.
+![DenseNet model architecture](/Images/densenet_architecture-1.png)
 
 
 ## Key Results
 
-TODO: add short results summary and relevance images here
+<!---TODO: add short results summary and relevance images here--->
 
+
+Follwing is the mean relevance map for the MCI group of the ADNI3 dataset obtained using the
+LRP relevance propagation method, for a trained DenseNet model. Coronal slices Y=[-10,-20,-30] mm in MNI reference space are shown. 
+Bright yellow represent the most relevant regions.
+
+<p align="center">
+  <img src="/Images/MeanRelevanceMap_DenseNet.png">
+</p>
+
+This study shows that DenseNet, a complex model with dense-skip connections, utilises an efficient information flow at various scales,
+and generates relevance maps which focused on clinically relevant features (ex. the hippocampal region).
+This study also demonstrates the added value of a holistic evaluation of models, where relevance maps are being used in combination with classical performance metrics.
 
 ## Citation
 
