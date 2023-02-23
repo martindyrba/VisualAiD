@@ -1,5 +1,11 @@
 # VisualAiD -- Comparison of 3D CNN Architectures for Detecting Alzheimer's Disease using Relevance Maps
 
+![python](https://img.shields.io/badge/python-v3.7-green)
+![tf](https://img.shields.io/badge/tensorflow-v1.15-orange)
+![keras](https://img.shields.io/badge/keras-v.2.2.4-red)
+![innvestigate](https://img.shields.io/badge/innvestigate-v.1.0.9-blue)
+
+
 Alzheimer's disease (AD) is a neurodegenerative disorder which causes gradual and irreversible damage to the brain. 
 Many recent developments in deep learning (DL) and specifically in convolutional neural networks (CNN), have achieved promising results in a broad range of computer-vision tasks.
 The success of CNNs have made them a common state-of-the-art tool for image classification and object localisation tasks. 
