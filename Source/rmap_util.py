@@ -12,17 +12,17 @@ from keras import models
 import innvestigate.utils as iutils
 import innvestigate
 import nibabel as nib
-
+import tensorflow as tf
 import warnings
 warnings.filterwarnings('ignore')
 
 def dir_check(save_path):
     '''
     Create a director. And if it already exists, check if it is empty or not.
-
     save_path: a directory path
     '''
-
+     
+    #save_path = '/data_dzne_archiv2/Studien/Deep_Learning_Visualization/git-code/demenzerkennung/Devesh/experiments/relevance'
     os.makedirs(save_path, exist_ok=True)
     dir = os.listdir(save_path)
     if len(dir) == 0:
@@ -35,12 +35,11 @@ def dir_check(save_path):
 def save_config(save_path, q , overlay_alpha , overlay_alpha_threshold):
     '''
     Saves a config(.txt) file, containing hyperparameter setings that were used for creating relevance maps.
-
     save_path: a directory path
     q: Scaling Quantile
     overlay_alpha: Overlay Alpha shown
     overlay_alpha_threshold: Overlay Alpha thresholded
-    ''' 
+    '''
     config_dict = {'Scaling Quantile': q, 'Overlay Alpha shown': overlay_alpha, 'Overlay Alpha thresholded': overlay_alpha_threshold}
 
     with open( os.path.join(save_path,'config.txt'), 'w') as f:
@@ -50,9 +49,10 @@ def save_config(save_path, q , overlay_alpha , overlay_alpha_threshold):
 def remove_last_occurrence(string, substring):
     return ''.join(string.rsplit(substring, 1))
 
-
 # Intialising the colormap to be used.
 overlay_colormap = cm.get_cmap('RdYlGn_r')
+
+
 
 
 
@@ -60,7 +60,7 @@ def activation2nifti( a, im_path, sample_id, sample_dataset, cnn_experiment_name
                     x_range_from=12, x_range_to=181, y_range_from=13, y_range_to=221, z_range_from=0, z_range_to=179):
     '''
     Converts and saves, an activation volume to a nifti file. 
-
+    
     a: activation volume to be saved. Assumes in range [-1, 1]
     im_path:  path to any sample MRI scan with nifti extention. Used for header.
     sample_id: str rid. a unique marker for the sample MRI scan.
@@ -69,7 +69,7 @@ def activation2nifti( a, im_path, sample_id, sample_dataset, cnn_experiment_name
     relevance_method_name: name of the relevance propogation method used for creating this activation volume
     save_path: directory path
     '''
-    
+        
     #load a sample MRI scan to be used for header. 
     hipp_nifti = nib.load(im_path)                                      # assume it is already 32bit float format
     new_data = np.zeros(hipp_nifti.shape, dtype=np.float32) 
@@ -81,10 +81,10 @@ def activation2nifti( a, im_path, sample_id, sample_dataset, cnn_experiment_name
     
     #print('saving relevance maps:\n  Sample/Dataset: {}/{}, \n  Model:{} \t Relevance method:{}'.format(sample_id,sample_dataset,cnn_experiment_name, relevance_method_name)) 
     
-    #assign                
+    #assign                      
     new_data[x_range_from:x_range_to, y_range_from:y_range_to, z_range_from:z_range_to]   = a
     nifti = nib.Nifti1Image(new_data, hipp_nifti.affine, hipp_nifti.header)
-    
+     
     #saving
     nifti.to_filename(os.path.join(save_path,'{}_{}_ActVol.nii'.format(cnn_experiment_name, relevance_method_name))) 
     
@@ -102,7 +102,7 @@ def create_anaylzer_dict(experiments_list, model_type, methods, folds, all_exper
     exp_dict ={} 
 
     #loop over all 3d-cnn model experiments.
-    for exp,m_type in zip(experiments_list,model_type):       
+    for exp,m_type in zip(experiments_list,model_type):       #loop over all 3d-cnn model experiments.
 
         #if '-a' in m_type:    #Take this condition out when want to include agumented data models in the relevance testing.
         #    continue
@@ -112,9 +112,11 @@ def create_anaylzer_dict(experiments_list, model_type, methods, folds, all_exper
         fold_path = os.path.join(experiment_path, folds[0] )
         if not os.path.exists(fold_path):
             continue
-
+            
+        temp_dict = {'ResNet-ua':'Resnet',      'DenseNet-ua':'DenseNet',    'Alexnet-ua':'Alex',     'VGG-ua':'VGG'} 
         #initialisations
-        model_code = 'model_{}-vgg.best.hdf5'.format(folds[0])
+        model_code = 'model_{}-{}.best.hdf5'.format(folds[0],temp_dict[m_type] )   
+        #model_code = 'dense_leftout_{}.hdf5'.format(folds[0])     
         model_path = os.path.join(fold_path, model_code)
 
         ip_shape = (179,169,208,1)
@@ -123,20 +125,20 @@ def create_anaylzer_dict(experiments_list, model_type, methods, folds, all_exper
         model = None
 
         #loading models with random weights
-        if 'ResNet' in m_type:
+        if 'ResNet'.lower() in m_type.lower():
             model =  util.model_Resnet(ip_shape,op_shape)
-        elif 'DenseNet' in m_type:
+        elif 'DenseNet'.lower() in m_type.lower():
             model =  util.DenseNet(ip_shape,op_shape)
-        elif 'AlexNet' in m_type:
+        elif 'AlexNet'.lower() in m_type.lower():
             model =  util.model_Alex2(ip_shape,op_shape)
         else:
             model = util.model_VGG(ip_shape, op_shape)
 
-
+         
         try:
             model = models.load_model(model_path)                               # loading models with trained weights
             model_wo_softmax = iutils.keras.graph.model_wo_softmax(model)       # removing softmax layer from the end, needed for relevance maps via innvestigate
-
+            
             # In case model_wo_softmax crashes
             #From: https://github.com/martindyrba/DeepLearningInteractiveVis/blob/demo/x_extract_hippocampus_relevance_lrpCMP.ipynb
             #model.layers[-1].activation = tf.keras.activations.linear
@@ -144,8 +146,9 @@ def create_anaylzer_dict(experiments_list, model_type, methods, folds, all_exper
             #model_wo_softmax = models.load_model('tmp_wo_softmax.hdf5')
             #os.remove('tmp_wo_softmax.hdf5')
             #model_wo_softmax.summary()
+
         except:
-            print(m_type)                                                       # prints name of model for which removing softmax layer was not possible 
+            #print(m_type)                                                       # prints name of model for which removing softmax layer was not possible 
             continue
         
         #creating a dict of all the relevance analyzers (methods)    
@@ -168,13 +171,14 @@ def overlay2rgba(relevance_map, alpha=0.5, alpha_threshold=0.2):
     """
     Converts the 3D relevance map to RGBA.
 
-    relevance_map: numpy.ndarray relevance_map: The 3D relevance map.
-    alpha: the transparency/the value for the alpha channel.
-    alpha_threshold: min threshold for showing relevance values.
+    :param numpy.ndarray relevance_map: The 3D relevance map.
+    :param float alpha: the transparency/the value for the alpha channel.
+    :return: the voxel values converted to RGBA data.
+    :rtype: numpy.ndarray
     """
     # assume map to be in range of -1..1 with 0 for hidden content
     alpha_mask = np.zeros_like(relevance_map)
-    alpha_mask[np.abs(relevance_map) > alpha_threshold] = alpha          # final transparency of visible content
+    alpha_mask[np.abs(relevance_map) > alpha_threshold] = alpha  # final transparency of visible content
     relevance_map = relevance_map / 2 + 0.5  # range 0-1 float
     ovl = np.uint8(overlay_colormap(relevance_map) * 255)  # cm translates range 0 - 255 uint to rgba array
     ovl[:, :, 3] = np.uint8(alpha_mask * 255)          #ovl[:, :, 3]              # replace alpha channel (fourth dim) with calculated values
@@ -186,11 +190,13 @@ def overlay2rgba(relevance_map, alpha=0.5, alpha_threshold=0.2):
 
 def scale_relevance_map(r_map, clipping_threshold=1, quantile=0.9999):
     """
+    Path: Z:\Studien\Deep_Learning_Visualization\git-code\demenzerkennung\DeepLearningInteractiveVis\InteractiveVis\datamodel.py 
     Clips the relevance map to given threshold and adjusts it to range -1...1 float.
 
-    relevance_map: relevance activation volume
-    clipping_threshold: max value to be plotted, larger values will be set to this value
-    quantile: quantile chosen to scale the data. 
+    :param numpy.ndarray relevance_map:
+    :param int clipping_threshold: max value to be plotted, larger values will be set to this value
+    :return: The relevance map, clipped to given threshold and adjusted to range -1...1 float.
+    :rtype: numpy.ndarray
     """
    #if debug: print("Called scale_relevance_map()")
     #    r_map = np.copy(relevance_map)  # leave original object unmodified.
@@ -218,7 +224,7 @@ def save_frequency_plots(a, exp_name,method, save_path):
 
     a:          relevance maps (3D volume). Assumed to be clippped between [-1,1].
     exp_name:   experiment name. An identifier for the type of 3D-CNN model architecture is being used.
-    method:     marker for relevance propogation algorithm, ex: LRP-epsilon  
+    method:     marker for relevance propogation algorithm, ex: LRP-epsilon    
     save_path:  a directory path.  
     '''
     
@@ -239,7 +245,7 @@ def save_frequency_plots(a, exp_name,method, save_path):
 def print_image_slices(a,img,exp_name,method, overlay_alpha=0.5, overlay_alpha_threshold=0.2, save_path=''):
     '''
     saves activation/relevance values over slices of brain scans as an image.
-
+   
     a:          relevance maps (3D volume). Assumed to be clippped between [-1,1].
     img:        underlying input image for which activation maps a, are created.
     exp_name:   experiment name. An identifier for the type of 3D-CNN model architecture is being used.
@@ -254,7 +260,7 @@ def print_image_slices(a,img,exp_name,method, overlay_alpha=0.5, overlay_alpha_t
 
     #2 - Create 2D relvance visualisations. Avtivations ploted over coronal slices.  
     # RGBA o/p (4 channel) - RGB brain image, activations placed in the alpha channel
-    images_per_row = 10                                             # only ten evenly spaced sclices out of volume depth of 111 units.
+    images_per_row = 10                                             # only ten linearly scliced out of 111 depth
     jump = (a.shape[2] // images_per_row)
     for row in range(images_per_row):
         plt.figure()
