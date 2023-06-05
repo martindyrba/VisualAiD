@@ -299,6 +299,14 @@ def ROC_AUC(labelsT,pred, path, dataset_marker='test'):
     plt.savefig(os.path.join(path, '{}_ROC_AUC.pdf'.format(dataset_marker)))    #ROC_AUC.pdf
 
 def binary_auc_metric(grps, labels, pred, path, marker='test'):
+    '''
+    Calculates the binary area under the curve (AUC) metric for classification take of a) AD-vs-CN, or b) MCI-vs-CN. Saves the result in a text file.
+    grps:       the groups [1:CN, 2:MCI, 3:AD] associated with each sample
+    labels:     the ground truth labels
+    pred:       the predicted labels confidences
+    path:       directory path to where binary AUC metrics have to be saved
+    marker:     a marker declaring portion of data set. ex Validation or Test
+    '''
     fpr = dict()
     tpr = dict()
     roc_auc = dict()
@@ -320,7 +328,7 @@ def binary_auc_metric(grps, labels, pred, path, marker='test'):
             bin_marker = 'AD-vs-CN'
         roc_auc[bin_marker] = auc(fpr[i], tpr[i])
 
-    #Saves ROC-Binary-Task dictionary to a tex file
+    #Saves ROC-Binary-Task dictionary to a text file
     with open(os.path.join(path,'{}_BinaryAUC.txt'.format(marker)), 'w') as f: 
         for key, value in roc_auc.items(): 
             f.write('%s:%s\n' % (key, value))
@@ -630,14 +638,11 @@ def shift(arr, num, axis, fill_value=0):
   return result  
 
 def data_aug_inplace(trainigdata, flip=True):
-    ''' defines function for simple data augmentation (translation of 2 vx in each x/y/z direction)  
-      adapted from https://stackoverflow.com/a/42642326
-    
-      arr:  a ndarray to be shifted along axes
-      num:  in interger number, quatifying the number of voxels a volume has to shifted. 
-            the sign signifies the direction of shift along the axis. 
-      axis: the length, breadth, depth (or coronal, axial, sagittal) axis along which shift takes place.
-      fill_value:   a replacement value, for the voxles where shift took place.  
+    '''
+    a data-augmentation wrapper function around the shift procedure.
+
+    trainigdata:    the nd.array of dataset to be augmented.
+    flip:           a flag variable, when turned on, enables flipping the order of elements along an axis. 
     '''
 
     #axis1
