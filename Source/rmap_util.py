@@ -171,10 +171,9 @@ def overlay2rgba(relevance_map, alpha=0.5, alpha_threshold=0.2):
     """
     Converts the 3D relevance map to RGBA.
 
-    :param numpy.ndarray relevance_map: The 3D relevance map.
-    :param float alpha: the transparency/the value for the alpha channel.
-    :return: the voxel values converted to RGBA data.
-    :rtype: numpy.ndarray
+    relevance_map: numpy.ndarray relevance_map: The 3D relevance map.
+    alpha: the transparency/the value for the alpha channel.
+    alpha_threshold: min threshold for showing relevance values.
     """
     # assume map to be in range of -1..1 with 0 for hidden content
     alpha_mask = np.zeros_like(relevance_map)
@@ -190,13 +189,11 @@ def overlay2rgba(relevance_map, alpha=0.5, alpha_threshold=0.2):
 
 def scale_relevance_map(r_map, clipping_threshold=1, quantile=0.9999):
     """
-    Path: Z:\Studien\Deep_Learning_Visualization\git-code\demenzerkennung\DeepLearningInteractiveVis\InteractiveVis\datamodel.py 
     Clips the relevance map to given threshold and adjusts it to range -1...1 float.
 
-    :param numpy.ndarray relevance_map:
-    :param int clipping_threshold: max value to be plotted, larger values will be set to this value
-    :return: The relevance map, clipped to given threshold and adjusted to range -1...1 float.
-    :rtype: numpy.ndarray
+    relevance_map: relevance activation volume
+    clipping_threshold: max value to be plotted, larger values will be set to this value
+    quantile: quantile chosen to scale the data. 
     """
    #if debug: print("Called scale_relevance_map()")
     #    r_map = np.copy(relevance_map)  # leave original object unmodified.
@@ -218,7 +215,7 @@ def scale_relevance_map(r_map, clipping_threshold=1, quantile=0.9999):
     return r_map
 
 
-def save_frequency_plots(a, exp_name,method, save_path):
+def save_frequency_plots(a, exp_name, method, save_path):
     '''
     creates and saves, a frequency histogram for a given activation volume.
 
