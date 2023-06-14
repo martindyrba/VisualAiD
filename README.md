@@ -13,8 +13,10 @@ Though CNNs and DL models at large remain difficult to understand and explain, a
 Feature attribution methods such as layer-wise relevance propagation (LRP) allow tracing back the information flow in CNNs. 
 This enables creation of relevance heatmaps, which approximate the contribution of the input image regions on the model decision. 
 
-**In this project, we addressed the open question which of the most common CNN architectures is best suited for AD classification based on MRI data.**
+Further details on the addressed open question, i.e., which of the most common CNN architectures is best suited for AD classification based on MRI data, were published in the procedings:
 
+Singh & Dyrba (2023) Comparison of CNN Architectures for Detecting Alzheimer’s Disease using Relevance Maps. 
+Bildverarbeitung für die Medizin 2023. BVM 2023. DOI: [10.1007/978-3-658-41657-7_51](https://doi.org/10.1007/978-3-658-41657-7_51)
 
 ## Included 3D CNN Model Architectures
 
