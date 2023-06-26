@@ -1,4 +1,4 @@
-name: tf_test
+name: VisualAiD
 channels:
   - defaults
 dependencies:
@@ -120,8 +120,6 @@ dependencies:
     - threadpoolctl==3.1.0
     - tifffile==2021.11.2
     - tomli==2.0.1
-    - torch==1.12.1+cu116
-    - torchio==0.18.84
     - tornado==6.2
     - tqdm==4.64.1
     - typing-extensions==4.3.0
@@ -131,4 +129,4 @@ dependencies:
     - xlrd==1.2.0
     - yarg==0.1.9
     - zipp==3.8.1
-prefix: /home/singhd/anaconda3/envs/tf_test
+prefix: ~/anaconda3/envs/VisualAiD
