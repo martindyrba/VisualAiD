@@ -1,8 +1,7 @@
-''' 
-A script for creating the mean relevance maps, for each data-cohorts seprated by disease stages.
-Relevance from models only considered when they make correct predictions.
-''' 
-
+'''
+A script for creating mean maps of the relevances (method: LRP-CMPalpha1beta0) for the trained models. 
+And only reporting on the standalone test set (ADNI3).  
+'''
 import available_datasets
 from keras.utils import to_categorical
 import pandas as pd
@@ -14,25 +13,23 @@ import numpy as np
 agumentation=False
 flavor = 'N4cor_WarpedSegmentationPosteriors2'
 datasets = ['ADNI2', 'AIBL', 'EDSD', 'DELCODE', 'ADNI3'] 
-dataset_marker = datasets[4]    #Picking the test set
+dataset_marker = datasets[4]                                                    #Only reporting on the standalone test set (ADNI3).
 
 
-experiments_list =  ['261022_164054',   '271022_164133',    '281122_144817',    '251122_180422',
-                    '021122_104936',    '031122_101114',    '071122_094130',    '101122_150350' ]   
-model_type =        ['ResNet-ua',       'ResNet-a',         'DenseNet-ua',      'DenseNet-a',
-                    'AlexNet-a',        'Alexnet-ua',       'VGG-ua',           'VGG-a']
+experiments_list =  ['130423_101001' , '140423_095514' , '120423_103427' , '050423_145902']   
+model_type =        ['ResNet-ua'     , 'DenseNet-ua'   , 'Alexnet-ua'    , 'VGG-ua']
 
 #chosen method for relevance propagation
+# Only using the LRP-CMPalpha1beta0 method as it works better than other relevance propogation methods.
 methods = [ ("lrp.sequential_preset_a", {"neuron_selection_mode": "index", "epsilon": 1e-10}, "LRP-CMPalpha1beta0")] 
-#Chosen because - highest average binary(cn vs ad/mci) test accuracy on this fold.
-folds=['cv2']    
+#chosing fold with best aggreageted performance by the models.
+folds=['cv8']
 #Chosen quantile value used for relevance scaling.
-q = 0.9999
+q = 0.9999              
 
-
-#path initialisations
+# Paths where things were stored before or where we want to store processed data. 
 dir_path = '/data_dzne_archiv2/Studien/Deep_Learning_Visualization/git-code/demenzerkennung/Devesh/experiments'
-dir_path2 = '/data_dzne_archiv2/Studien/Deep_Learning_Visualization/git-code/demenzerkennung/Devesh/experiments/mean_map'
+dir_path2 = '/data_dzne_archiv2/Studien/Deep_Learning_Visualization/git-code/demenzerkennung/Devesh/experiments/mean_map_10cvRedo'
 data_path = '/data_dzne_archiv2/Studien/Deep_Learning_Visualization/data/'
 im_path = data_path + 'ADNI_t1linear/AD/AD_4910_N4cor_WarpedSegmentationPosteriors2.nii.gz'
 
@@ -73,7 +70,7 @@ for m_type in model_type:
         if df_tptn[m_type][index]:  #TP/TN 
             im = images[index]     
             im = np.expand_dims(im,0)  
-            
+
             #getting activation maps.
             try:
                 a = exp_dict[m_type]['LRP-CMPalpha1beta0'].analyze(im,neuron_selection=1)
@@ -92,21 +89,21 @@ for m_type in model_type:
             else:                                #AD      
                 a_ad = a_ad + a
                 count_ad = count_ad +1 
-        
+
         #not considering the cases where model makes an incorrect prediction
         else: #FP/FN
             continue
         
-    dir3 = os.path.join(dir_path2, dataset_marker+'_')
+    dir3 = os.path.join(dir_path2, dataset_marker)
     os.makedirs(dir3, exist_ok=True)
 
     #saving the mean relevance maps.
     if count_cn:
-        rmap_util.activation2nifti(a_cn/count_cn,   im_path, '', dataset_marker, m_type, 'CN', dir3)    #mean=sum/N 
+        rmap_util.activation2nifti(a_cn/count_cn,   im_path, '', dataset_marker, m_type, 'CN', dir3)  
         print('{} #CN:  {}'.format(m_type,count_cn))
     if count_mci:
         rmap_util.activation2nifti(a_mci/count_mci, im_path, '', dataset_marker, m_type, 'MCI', dir3)
         print('{} #MCI: {}'.format(m_type,count_mci))
     if count_ad:
         rmap_util.activation2nifti(a_ad/count_ad,   im_path, '', dataset_marker, m_type, 'AD', dir3)  
-        print('{} #AD:  {}'.format(m_type,count_ad))    
+        print('{} #AD:  {}'.format(m_type,count_ad))

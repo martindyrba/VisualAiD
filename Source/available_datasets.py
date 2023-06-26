@@ -85,7 +85,7 @@ def load_ADNI2_data(x_range_from = 15, x_range_to = 175, y_range_from = 90, y_ra
     print('Checking for scans not found in Excel sheet: ', sum(x<0 for x in cov_idx))
     
     labels = pd.DataFrame({'Group':grpbin}).iloc[cov_idx, :]
-    grps = pd.DataFrame({'Group':grp, 'RID':sid}).iloc[cov_idx, :]
+    grps = pd.DataFrame({'Group':grp, 'RID': util.add_marker('ADNI2_', sid) }).iloc[cov_idx, :]
     covariates = pd.DataFrame({'Age':age/100, 'Sex':sex, 'FS':(field-1.5)/1.5}).iloc[cov_idx, :]
     print("Covariates data frame size : ", covariates.shape)
     print(covariates.head())
@@ -190,7 +190,7 @@ def load_ADNI3_data(x_range_from = 15, x_range_to = 175, y_range_from = 90, y_ra
     print('Checking for scans not found in Excel sheet: ', sum(x<0 for x in cov_idx))
     
     labels = pd.DataFrame({'Group':grpbin}).iloc[cov_idx, :]
-    grps = pd.DataFrame({'Group':grp, 'RID':sid}).iloc[cov_idx, :]
+    grps = pd.DataFrame({'Group':grp, 'RID':util.add_marker('ADNI3_', sid)}).iloc[cov_idx, :]
     covariates = pd.DataFrame({'Age':age/100, 'Sex':sex, 'FS':(field-1.5)/1.5}).iloc[cov_idx, :]
     print("Covariates data frame size : ", covariates.shape)
     print(covariates.head())
@@ -289,7 +289,7 @@ def load_AIBL_data(x_range_from = 15, x_range_to = 175, y_range_from = 90, y_ran
     print('Checking for scans not found in Excel sheet: ', sum(x<0 for x in cov_idx))
     
     labels = pd.DataFrame({'Group':grpbin}).iloc[cov_idx, :]
-    grps = pd.DataFrame({'Group':grp, 'RID':sid}).iloc[cov_idx, :]
+    grps = pd.DataFrame({'Group':grp, 'RID':util.add_marker('AIBL_', sid)}).iloc[cov_idx, :]
     covariates = pd.DataFrame({'Age':age/100, 'Sex':sex, 'FS':(field-1.5)/1.5}).iloc[cov_idx, :]
     print("Covariates data frame size : ", covariates.shape)
     print(covariates.head())
@@ -367,7 +367,7 @@ def load_DELCODE_data(x_range_from = 15, x_range_to = 175, y_range_from = 90, y_
     #tiv = df['TIV_CAT12']
     field = df['FieldStrength']
     #amybin = df['ratio_Abeta42_40_pos']
-    grpbin = (grp > 0) # 0=CN, ...
+    grpbin = (grp > 1) # 1=CN, ...
     
     
     # Scan for nifti file names
@@ -394,7 +394,7 @@ def load_DELCODE_data(x_range_from = 15, x_range_to = 175, y_range_from = 90, y_
     numfiles = len(dataFiles)
     
     labels = pd.DataFrame({'Group':grpbin}).iloc[cov_idx, :]
-    grps = pd.DataFrame({'Group':grp, 'RID':sid}).iloc[cov_idx, :]
+    grps = pd.DataFrame({'Group':grp, 'RID':util.add_marker('DELCODE_', sid)}).iloc[cov_idx, :]
     covariates = pd.DataFrame({'Age':age/100, 'Sex':sex, 'FS':(field-1.5)/1.5}).iloc[cov_idx, :]
     print("Covariates data frame size : ", covariates.shape)
     print(covariates.head())
@@ -493,7 +493,7 @@ def load_EDSD_data(x_range_from = 15, x_range_to = 175, y_range_from = 90, y_ran
     print('Checking for scans not found in Excel sheet: ', sum(x<0 for x in cov_idx))
     
     labels = pd.DataFrame({'Group':grpbin}).iloc[cov_idx, :]
-    grps = pd.DataFrame({'Group':grp, 'RID':sid}).iloc[cov_idx, :]
+    grps = pd.DataFrame({'Group':grp, 'RID':util.add_marker('EDSD_', sid)}).iloc[cov_idx, :]
     covariates = pd.DataFrame({'Age':age/100, 'Sex':sex, 'FS':(field-1.5)/1.5}).iloc[cov_idx, :]
     print("Covariates data frame size : ", covariates.shape)
     print(covariates.head())

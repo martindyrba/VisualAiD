@@ -3,6 +3,7 @@ A utility script, with different supporting functionalities.
 '''
 
 import available_datasets 
+import pandas as pd
 import numpy as np
 from keras.utils import to_categorical
 import matplotlib.pyplot as plt
@@ -21,13 +22,33 @@ from scipy import ndimage
 
 #------------------- data preprocessing --------------------------
 
+def add_marker(datacohortmarker='ADNI3_', ids=None):
+    '''
+    given a array of sample ids, adds the name of the data-cohort marker in front of each sample id.
+    required due to overlapping sample ids names across ADNI and ABIL data cohort.
+    called in 'load_<data-cohort>_data()' function of available_datasets. 
+
+    datacohortmarker:   a string marker for the name of the data-cohort
+    ids:                unique sample ids (within a data-cohort) 
+    '''
+    if ids is None:
+        return 
+    
+    if isinstance(ids[0], str):
+        ids_char = ids        
+    else: 
+        ids_char = np.char.mod('%d', ids) #if int id, changes it to char
+    
+    marked_id =  [datacohortmarker + ele for ele in ids_char]  #add the name of data-cohort
+    return marked_id
+
 def data_processing(flavor = 'N4cor_WarpedSegmentationPosteriors2', agumentation=False):
     '''
     a warpper function, to create an aggregated dataset to be used while training.
-
     flavor:         a segementation marker chosen after preprocessing the MRI scans. By default gray matter segementation are chosen.  
     agumentation:   a flag to decide the loaded dataset should contain agumented brain scans.    
     '''
+
     #loading datasets
     adni2 = available_datasets.load_ADNI2_data( x_range_from = 12, x_range_to = 181, 
                                                 y_range_from = 13, y_range_to = 221,
@@ -71,12 +92,80 @@ def data_processing(flavor = 'N4cor_WarpedSegmentationPosteriors2', agumentation
 
     #test set
     imagesT = adni3['images']
-    groupsT = adni3['groups']
+    groupsT = adni3['groups'].to_numpy()
     labelsT = adni3['labels']
     labelsT = to_categorical(labelsT)
     covariatesT = adni3['covariates']
 
     del adni2; del aibl; del edsd; del delcode; del adni3  # free memory
+
+    return [images, labels, groups, covariates, numfiles], [imagesT, groupsT, labelsT, covariatesT] 
+
+
+def leave_one_out_data_processing(flavor = 'N4cor_WarpedSegmentationPosteriors2', test_marker='ADNI3'):
+    '''
+    a warpper function, to create an aggregated dataset to be used while training.
+    flavor:         a segementation marker chosen after preprocessing the MRI scans. By default gray matter segementation are chosen.  
+    agumentation:   a flag to decide the loaded dataset should contain agumented brain scans.    
+    '''
+
+    data_dict = dict()
+
+    #loading datasets
+    data_dict['adni2']  = available_datasets.load_ADNI2_data( x_range_from = 12, x_range_to = 181, 
+                                                y_range_from = 13, y_range_to = 221,
+                                                z_range_from = 0, z_range_to = 179, 
+                                                flavor = flavor,
+                                                aug=False)
+    
+    data_dict['aibl'] = available_datasets.load_AIBL_data(   x_range_from = 12, x_range_to = 181, 
+                                                y_range_from = 13, y_range_to = 221,
+                                                z_range_from = 0, z_range_to = 179, 
+                                                flavor = flavor,
+                                                aug=False)
+
+    data_dict['edsd'] = available_datasets.load_EDSD_data(   x_range_from = 12, x_range_to = 181, 
+                                                y_range_from = 13, y_range_to = 221,
+                                                z_range_from = 0, z_range_to = 179, 
+                                                flavor = flavor,
+                                                aug=False)
+
+    data_dict['delcode'] = available_datasets.load_DELCODE_data( x_range_from = 12, x_range_to = 181, 
+                                                    y_range_from = 13, y_range_to = 221,
+                                                    z_range_from = 0, z_range_to = 179, 
+                                                    flavor = flavor,
+                                                    aug=False)
+                                                    
+    data_dict['adni3']  = available_datasets.load_ADNI3_data( x_range_from = 12, x_range_to = 181, 
+                                                y_range_from = 13, y_range_to = 221,
+                                                z_range_from = 0, z_range_to = 179, 
+                                                flavor = flavor,
+                                                aug=False)                      
+
+
+    # loop over all the datasets and combine them as required.
+    # by leaving one out and concatenating all others. 
+    images, labels, groups, covariates = [], [], [], []    
+    for ele in data_dict.keys():
+        if ele.lower() == test_marker.lower():
+            continue
+        else:
+            images = np.concatenate([images, data_dict[ele]['images']], axis=0) if len(images)!=0 else data_dict[ele]['images']
+            labels = np.concatenate([labels, data_dict[ele]['labels']], axis=0) if len(labels)!=0 else data_dict[ele]['labels']
+            groups = np.concatenate([ groups, data_dict[ele]['groups']], axis=0) if len(groups)!=0 else data_dict[ele]['groups']
+            covariates = np.concatenate([ covariates, data_dict[ele]['covariates']], axis=0) if len(covariates)!=0 else data_dict[ele]['covariates']
+    
+    labels = to_categorical(labels)
+    numfiles = labels.shape[0]
+
+    #test set
+    imagesT = data_dict[test_marker.lower()]['images']
+    groupsT = data_dict[test_marker.lower()]['groups'].to_numpy()
+    labelsT = data_dict[test_marker.lower()]['labels']
+    labelsT = to_categorical(labelsT)
+    covariatesT = data_dict[test_marker.lower()]['covariates']
+    
+    del data_dict;  # free memory
 
     return [images, labels, groups, covariates, numfiles], [imagesT, groupsT, labelsT, covariatesT] 
 
@@ -100,14 +189,47 @@ def get_class_weights(labels, numfiles):
 
     return class_weights
 
-
 #-------------- model evaluation support functions --------------------------------
+
+def get_values(conf_matrix):
+    # Given a model's confusion matrix of shape 2x2, return evaluation metrics
+    assert conf_matrix.shape==(2,2)
+    tn, fp, fn, tp = conf_matrix.ravel()
+    sen = tp / (tp+fn)
+    spec = tn / (fp+tn)
+    ppv = tp / (tp+fp)
+    npv = tn / (tn+fn)
+    f1 = 2 * ((ppv * sen) / (ppv + sen))
+    bacc = (spec + sen) / 2
+    acc = (tp+tn)/(tp+tn+fp+fn) 
+    return bacc, sen, spec, ppv, npv, f1, acc
+
+
+def save_pred(marked_id, confidence, pred_label, gd, path, setmarker):
+    '''
+    save prediction information made by the model.
+
+    marked_id:  a str maker of the type '<data-cohort>_<sample_id>'
+    confidence: the prob. with which the model assigns a sample to a class
+    pred_label: label/class picked by the model for an instance
+    gd:         ground truth
+    path:       path to dir where we wish to save the prediction info. dataframe
+    setmarker:  a str marker for typer of data split from [validation, test] 
+    '''
+    pred_df = pd.DataFrame(columns=['cohort', 'id', 'PredCondifence_cls1','pred_label','GD'])
+    pred_df.cohort = [ele.split('_',1)[0]  for ele in marked_id] 
+    pred_df.id = [ele.split('_',1)[1]  for ele in marked_id]
+    pred_df.PredCondifence_cls1 = confidence
+    pred_df.pred_label = pred_label
+    pred_df.GD = gd
+
+    pred_df.to_csv( os.path.join(path, '{}_prediction.csv'.format(setmarker)) )
+
 
 def save_train_plts(hist, path, validation_tracked=False):
     '''
     saves plots for traning and validation loss and accuracy, over the epochs. 
     the plots are saved in two formats - png and pdf
-
     hist:   a keras history object, obtained after model.fit() call. records evaluation metrics values at successive epochs. 
     path:   directory path to where the plots should be saved.
     validation_tracked:     a flag object. When turned on, enables tracking of validation metrics. 
@@ -119,7 +241,7 @@ def save_train_plts(hist, path, validation_tracked=False):
         val_loss = hist.history['val_loss']
         val_acc = hist.history['val_acc']
     epochsr = range(len(loss))
-
+    
     # plot the loss-vs-epoch graph
     plt.figure()
     plt.plot(epochsr, loss, 'bo', label='Training loss')
@@ -129,9 +251,10 @@ def save_train_plts(hist, path, validation_tracked=False):
     else:
         plt.title('Training loss')
     plt.legend()
+    #plt.show()
     plt.savefig(os.path.join(path, 'TrainLoss.png'))
     plt.savefig(os.path.join(path, 'TrainLoss.pdf'))
-
+    
     # plot the accuracy-vs-epoch graph
     plt.figure()
     plt.plot(epochsr, acc, 'bo', label='Training acc')
@@ -147,13 +270,12 @@ def ROC_AUC(labelsT,pred, path, dataset_marker='test'):
     '''
     Calculate area under the curve (AUC)
     Adapted from: https://stackoverflow.com/questions/41032551/how-to-compute-receiving-operating-characteristic-roc-and-auc-in-keras
-
     labelsT:    the ground truth labels
     pred:       the predicted labels
     path:       directory path to where ROC curves have to be saved
     dataset_marker: a marker declaring portion of data set. ex Train, Validation or Test.
     '''
-    
+
     fpr = dict()
     tpr = dict()
     roc_auc = dict()
@@ -172,21 +294,57 @@ def ROC_AUC(labelsT,pred, path, dataset_marker='test'):
     plt.ylabel('True Positive Rate')
     plt.title('Receiver operating characteristic | {}-set'.format(dataset_marker))
     plt.legend(loc="lower right")
-    #save
-    plt.savefig(os.path.join(path, '{}_ROC_AUC.png'.format(dataset_marker)))    
-    plt.savefig(os.path.join(path, '{}_ROC_AUC.pdf'.format(dataset_marker)))    
+    #Save        
+    plt.savefig(os.path.join(path, '{}_ROC_AUC.png'.format(dataset_marker)))    #ROC_AUC.png
+    plt.savefig(os.path.join(path, '{}_ROC_AUC.pdf'.format(dataset_marker)))    #ROC_AUC.pdf
 
+def binary_auc_metric(grps, labels, pred, path, marker='test'):
+    '''
+    Calculates the binary area under the curve (AUC) metric for classification take of a) AD-vs-CN, or b) MCI-vs-CN. Saves the result in a text file.
+    grps:       the groups [1:CN, 2:MCI, 3:AD] associated with each sample
+    labels:     the ground truth labels
+    pred:       the predicted labels confidences
+    path:       directory path to where binary AUC metrics have to be saved
+    marker:     a marker declaring portion of data set. ex Validation or Test
+    '''
+    fpr = dict()
+    tpr = dict()
+    roc_auc = dict()
+
+    for i in [2,3]: 
+        #pick out the index of class of interest (i). 2:MCI, 3:AD
+        grp_i = np.equal(grps[:,0], np.ones((grps.shape[0],), dtype=np.int)*i) 
+        #pick put the index of CN class (1). 
+        grp_1 = np.equal(grps[:,0], np.ones((grps.shape[0],), dtype=np.int))
+        #Logical OR, between the indices of class of interest and CN.
+        grpidx = np.logical_or(grp_i, grp_1)
+
+        #doing the ROC calc, for either of the 2 binary task. AD-vs-CN or MCI-vs-CN
+        fpr[i], tpr[i], _ = roc_curve(labels[grpidx, 1], pred[grpidx, 1])
+
+        if i==2:
+            bin_marker = 'MCI-vs-CN'
+        else:
+            bin_marker = 'AD-vs-CN'
+        roc_auc[bin_marker] = auc(fpr[i], tpr[i])
+
+    #Saves ROC-Binary-Task dictionary to a text file
+    with open(os.path.join(path,'{}_BinaryAUC.txt'.format(marker)), 'w') as f: 
+        for key, value in roc_auc.items(): 
+            f.write('%s:%s\n' % (key, value))
+    f.close()
 
 #------------- Model intialisation function calls -----------------------
+
 
 def model_VGG(ip_shape, op_shape):
     '''
     declaring a VGG-Net model. 
     Paper: https://arxiv.org/pdf/1409.1556.pdf
-
     ip_shape: expected input shape
     op_shape: expected output shape
     '''
+    
     # Setup 3D CNN model
     input_shape = ip_shape               #images.shape[1:]
     model = models.Sequential()
@@ -232,7 +390,6 @@ def model_Alex2(ip_shape, op_shape):
     declaring a AlexNet model. 
     Paper: https://proceedings.neurips.cc/paper/2012/file/c399862d3b9d6b76c8436e924a68c45b-Paper.pdf
     NOTE: adapted from Mahdi Osman Khan's prethesis work. 
-
     ip_shape: expected input shape
     op_shape: expected output shape
     '''
@@ -268,14 +425,13 @@ def model_Resnet(ip_shape, op_shape, activation='relu'):
     declaring a ResNet model. 
     Paper: https://arxiv.org/pdf/1512.03385.pdf
     NOTE: adapted from Mahdi Osman Khan's prethesis work. 
-
     ip_shape: expected input shape
     op_shape: expected output shape
     activation: activation (non-linearity) to be used in the model.
     '''
     # Setup 3D CNN model
     input_shape = ip_shape
-    X=layers.Input(shape=input_shape)
+    X= layers.Input(shape=input_shape)
     # Convolution Layers
     X1=layers.Conv3D(5, (3, 3, 3), padding='same', input_shape=input_shape, data_format='channels_last')(X)
     X1=layers.Conv3D(5, (3, 3, 3), padding='same')(X1)
@@ -288,7 +444,7 @@ def model_Resnet(ip_shape, op_shape, activation='relu'):
 
     X2=layers.MaxPooling3D(pool_size=(2, 2, 2))(X)
 
-    Y=layers.Add()([X1,X2])         #residual/skip connection
+    Y=layers.Add()([X1,X2])                  #residual/skip connection
 
 
     Y=layers.MaxPooling3D(pool_size=(2, 2, 2))(Y)
@@ -308,7 +464,7 @@ def model_Resnet(ip_shape, op_shape, activation='relu'):
 
     Y2=layers.MaxPooling3D(pool_size=(2, 2, 2))(Y)
 
-    Z=layers.Add()([Y1,Y2])          #residual/skip connection
+    Z=layers.Add()([Y1,Y2])                  #residual/skip connection
 
     Z=layers.MaxPooling3D(pool_size=(2, 2, 2))(Z)
     Z=layers.Activation(activation)(Z)
@@ -317,7 +473,8 @@ def model_Resnet(ip_shape, op_shape, activation='relu'):
     # FC layer
     Z=layers.Flatten()(Z)
     Z=layers.Dense(op_shape, activation='softmax')(Z)
-    model = models.Model(inputs=X, outputs=Z)
+    #model = models.Model(inputs=X, outputs=Z)x
+    model = Model(X, Z)
 
     return model
 
@@ -331,7 +488,7 @@ def DenseNet(ip_shape, op_shape, filters = 3):
     op_shape: expected output shape
     filters: number of filters to be used
     '''
-
+    
     #batch norm + relu + conv
     def bn_rl_conv(x,filters,kernel=1,strides=1):
         
@@ -366,6 +523,7 @@ def DenseNet(ip_shape, op_shape, filters = 3):
         x = transition_layer(d)
     
     #x = GlobalAveragePooling3D()(d)
+
     x = layers.MaxPooling3D(pool_size=(2, 2, 2))(d)
     #Notice the input to pooling layer. d. this overwrites the last x variable,
     #and nullifies the transition layer computations done on last dense blocks output. 
@@ -373,6 +531,11 @@ def DenseNet(ip_shape, op_shape, filters = 3):
     #TLDR: No transition layer after last dense block. 
 
     # FC layer
+    # added on 3.3.23
+    x=layers.Activation('relu')(x)
+    #x=layers.Dropout(rate = 0.3)(x)
+    x=layers.Dropout(rate = 0.4)(x)
+
     x = layers.Flatten()(x)
     output = Dense(op_shape, activation = 'softmax')(x)
     
@@ -481,6 +644,7 @@ def data_aug_inplace(trainigdata, flip=True):
     trainigdata:    the nd.array of dataset to be augmented.
     flip:           a flag variable, when turned on, enables flipping the order of elements along an axis. 
     '''
+
     #axis1
     if np.random.choice([0, 1]):       #50% chance of shift along an axis
         shift_side = np.random.choice([-1, 1])     #50% chance, in deciding the direction of shift 
@@ -502,4 +666,3 @@ def data_aug_inplace(trainigdata, flip=True):
     
 
     return trainigdata
-
