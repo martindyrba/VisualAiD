@@ -55,6 +55,7 @@ This study also demonstrates the added value of a holistic evaluation of models,
  booktitle = {Bildverarbeitung f{\"u}r die Medizin 2023},
  year = {2023},
  publisher = {{Springer Fachmedien Wiesbaden}},
- note = {accepted}
+ note = {accepted},
+doi = {https://doi.org/10.1007/978-3-658-41657-7_51},
 }
 ```
