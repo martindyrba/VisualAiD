@@ -1,4 +1,4 @@
-# VisualAiD -- Comparison of 3D CNN Architectures for Detecting Alzheimer's Disease using Relevance Maps
+# VisualAiD: Comparison of 3D CNN Architectures for Detecting Alzheimer's Disease using Relevance Maps
 
 ![python](https://img.shields.io/badge/python-v3.7-green)
 ![tf](https://img.shields.io/badge/tensorflow-v1.15-orange)
